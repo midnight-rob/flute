@@ -193,6 +193,8 @@ npm pack --dry-run
 
 ### Publish to npm
 
+The full step-by-step flow, including pushing, tagging, consumers and rollback, is in [RELEASING.md](RELEASING.md). In short:
+
 1. Update the version with `npm version patch --no-git-tag-version` (or `minor`) and add an entry to [CHANGELOG.md](CHANGELOG.md).
 2. Run the local verification suite: `npm run verify:release`. It includes architecture, browser, installed-app, export and hardware checks, with logs in `.release/logs/`. Chromium and FFmpeg are required.
 3. Commit the version, lockfile and changelog, then push to `main`.
