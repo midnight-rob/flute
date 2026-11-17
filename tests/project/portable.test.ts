@@ -8,10 +8,10 @@ const roots:string[]=[];
 async function put(root:string,file:string,text:string){await mkdir(path.dirname(path.join(root,file)),{recursive:true});await writeFile(path.join(root,file),text);}
 async function host(kind="next-app",react="19.1.0"){
  const root=await mkdtemp(path.join(tmpdir(),"flute-portable-"));roots.push(root);
- await put(root,"package.json",JSON.stringify({dependencies:{react,"react-dom":react,"@webprodigies/flute":"0.1.0",...(kind.startsWith("next")?{next:"16.3.5"}:{})},scripts:{dev:"custom-server --anything"}}));
+ await put(root,"package.json",JSON.stringify({dependencies:{react,"react-dom":react,"@rob3rt0-connected/flute":"0.1.0",...(kind.startsWith("next")?{next:"16.3.5"}:{})},scripts:{dev:"custom-server --anything"}}));
  for(const name of ["react","react-dom"])await put(root,"node_modules/"+name+"/package.json",JSON.stringify({name,version:react}));
- await put(root,"node_modules/@webprodigies/flute/package.json",JSON.stringify({name:"@webprodigies/flute",exports:{"./preview":{import:"./preview.js"}}}));
- await put(root,"node_modules/@webprodigies/flute/preview.js","export {}");
+ await put(root,"node_modules/@rob3rt0-connected/flute/package.json",JSON.stringify({name:"@rob3rt0-connected/flute",exports:{"./preview":{import:"./preview.js"}}}));
+ await put(root,"node_modules/@rob3rt0-connected/flute/preview.js","export {}");
  if(kind==="next-app")await put(root,"app/layout.tsx",'export default function Layout({children}) { return <html><body>{children}</body></html> }');
  if(kind==="next-src")await put(root,"src/app/layout.jsx",'export default function Layout({children}) { return <html><body>{children}</body></html> }');
  if(kind==="next-pages")await put(root,"pages/_app.tsx",'export default function App({Component,pageProps}) { return <Component {...pageProps}/> }');
@@ -34,7 +34,7 @@ describe("portable host connections",()=>{
   expect((await readdir(path.join(root,".flute"))).sort()).toEqual(["integration.json","project.json"]);
   const wrapper=await readFile(path.join(root,"src/flute/ProjectPreview.jsx"),"utf8");
   expect(wrapper).not.toMatch(/import\.meta|process\.|next\//);
-  expect(wrapper).toContain('from "@webprodigies/flute/preview"');
+  expect(wrapper).toContain('from "@rob3rt0-connected/flute/preview"');
  });
  it.each(["18.2.0","18.3.1","19.0.0","19.1.0","19.2.0"])("uses supported installed React %s without installing Vite",async react=>{
   const root=await host("custom",react);success(await run(root));expect(await readdir(root)).not.toContain("vite.config.ts");

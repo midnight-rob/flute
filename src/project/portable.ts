@@ -10,7 +10,7 @@ export function portableIntegration(project: ProjectState, catalog: string): Rec
     "src/flute/catalog.js": catalog,
     "src/flute/ProjectPreview.jsx": `"use client";
 import React from "react";
-import { ProjectPreview } from "@webprodigies/flute/preview";
+import { ProjectPreview } from "@rob3rt0-connected/flute/preview";
 import { sceneModules } from "./catalog";
 // Host-owned development flag: no process, Vite or Electron globals in this adapter.
 export function FluteProjectPreview({ children, enabled, active, ...props }) {

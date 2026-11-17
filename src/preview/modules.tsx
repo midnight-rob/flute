@@ -1,5 +1,5 @@
 import {useEffect,useState,type ComponentType} from 'react';
-import {SceneLibrary} from './SceneLibrary';
+import {SceneLibrary,type CameraLibraryOptions} from './SceneLibrary';
 import {usePreviewConnection,type PreviewHot} from './connection';
 /** SOURCE OF TRUTH: SceneModules adapter.
  * WHAT: load explicitly supplied host source modules only for the development library.
@@ -8,7 +8,7 @@ import {usePreviewConnection,type PreviewHot} from './connection';
  */
 export type SceneModules=Record<string,()=>Promise<unknown>>;
 const pause=()=>{};
-export function SceneModuleLibrary({modules,hot,backHref}:{modules:SceneModules;hot?:PreviewHot;backHref?:string}){
+export function SceneModuleLibrary({modules,hot,backHref,camera}:{modules:SceneModules;hot?:PreviewHot;backHref?:string;camera?:CameraLibraryOptions}){
  const connection=usePreviewConnection(hot,pause);
  const [retry,setRetry]=useState(0);
  const [state,setState]=useState<{sources:Record<string,unknown>;bindings:Record<string,ComponentType>;error?:string}|null>(null);
@@ -32,5 +32,5 @@ export function SceneModuleLibrary({modules,hot,backHref}:{modules:SceneModules;
   };void load();return()=>{active=false};
  },[modules,retry,connection.generation]);
  if(!state)return <div role="status" style={{padding:40,color:'#eee',background:'#000'}}>Loading your scenes…</div>;
- return <><SceneLibrary sources={state.sources} bindings={state.bindings} hot={hot} backHref={backHref}/>{state.error&&<aside role="alert" style={{position:'fixed',zIndex:20,bottom:60,left:24,right:24,padding:24,borderRadius:20,background:'#252529',color:'#fff'}}>Correct the scene source: {state.error} <button onClick={()=>setRetry(value=>value+1)}>Retry</button></aside>}</>;
+ return <><SceneLibrary sources={state.sources} bindings={state.bindings} hot={hot} backHref={backHref} camera={camera}/>{state.error&&<aside role="alert" style={{position:'fixed',zIndex:20,bottom:60,left:24,right:24,padding:24,borderRadius:20,background:'#252529',color:'#fff'}}>Correct the scene source: {state.error} <button onClick={()=>setRetry(value=>value+1)}>Retry</button></aside>}</>;
 }

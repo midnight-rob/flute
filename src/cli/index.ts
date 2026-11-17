@@ -29,7 +29,7 @@ flute load [--scene ID] [--project DIR] [--json]
 flute validate [--project DIR]
 flute export --url URL --output FILE [--fps 30|60|120] [--width N --height N] [--project DIR] [--json]
 
-After installing @webprodigies/flute locally, run npx flute init in your React DOM app (React 18.2+ or 19). Next.js and Vite have automatic connections; other hosts get a portable React wrapper.
+After installing @rob3rt0-connected/flute locally, run npx flute init in your React DOM app (React 18.2+ or 19). Next.js and Vite have automatic connections; other hosts get a portable React wrapper.
 --package is optional when Flute is already installed; it accepts a local .tgz for setup.
 init preserves the existing root/providers and creates FLUTE.md for your coding agent.
 Add --url to initialize and open in one command.

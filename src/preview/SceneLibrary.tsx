@@ -2,6 +2,7 @@ import {useEffect,useMemo,useRef,useState,type ComponentType,type MouseEvent} fr
 import {FLUTE_BRAND,RESOURCES,motionDuration,matrixFor,TransformSchema} from '../core';
 import {Scene,Surface,SceneErrorBoundary} from '../react';
 import {ScenePreview} from './ScenePreview';
+import {CameraPreview,clearCameraQuery} from './camera/CameraPreview';
 import type {PreviewHot} from './connection';
 import {BrandAttribution} from './BrandAttribution';
 import {GettingStarted} from './GettingStarted';
@@ -13,7 +14,8 @@ import {libraryTheme} from './library-theme';
  * WHY: discovered files, deep links and CLI reopening share load-scene validation.
  * WHERE: ProjectPreview supplies Vite modules; ScenePreview owns selected playback.
  */
-export type SceneLibraryProps={sources?:Record<string,unknown>;bindings?:Record<string,ComponentType>;hot?:PreviewHot;backHref?:string};
+export type CameraLibraryOptions={storagePrefix?:string;sceneIds?:readonly string[]};
+export type SceneLibraryProps={sources?:Record<string,unknown>;bindings?:Record<string,ComponentType>;hot?:PreviewHot;backHref?:string;camera?:CameraLibraryOptions};
 const EMPTY_SOURCES:Record<string,unknown>={};
 const EMPTY_BINDINGS:Record<string,ComponentType>={};
 const ROW=150;
@@ -42,7 +44,7 @@ function SnapshotImage({src}:{src:string}){
  return failed===src?null:<img src={src} alt="" loading="lazy" decoding="async" onError={()=>setFailed(src)}/>;
 }
 function selection(){return typeof location==='undefined'?undefined:new URL(location.href).searchParams.get('flute-scene')??undefined;}
-export function SceneLibrary({sources=EMPTY_SOURCES,bindings=EMPTY_BINDINGS,hot,backHref}:SceneLibraryProps){
+export function SceneLibrary({sources=EMPTY_SOURCES,bindings=EMPTY_BINDINGS,hot,backHref,camera:cameraOptions}:SceneLibraryProps){
  const [sceneId,setSceneId]=useState(selection);
  const [scroll,setScroll]=useState(0);
  const [size,setSize]=useState({width:1200,height:1000});
@@ -51,13 +53,20 @@ export function SceneLibrary({sources=EMPTY_SOURCES,bindings=EMPTY_BINDINGS,hot,
  const savedScroll=useRef(0);
  const catalog=useMemo(()=>RESOURCES['resolve-recipes']({sources:Object.entries(sources).map(([path,document])=>({path,document})),bindingPaths:Object.keys(bindings),...(sceneId?{sceneId}:{})}),[sources,bindings,sceneId]);
  const selected=catalog.selected;
+ const cameraEnabled = !!(cameraOptions && selected?.definition.motion?.durationMs &&
+  (!cameraOptions.sceneIds || cameraOptions.sceneIds.includes(selected.id)));
  const Component=selected?bindings[selected.binding]:undefined;
  const content=useMemo(()=>Component?<Component/>:null,[Component]);
  useEffect(()=>{const pop=()=>setSceneId(selection());window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)},[]);
  useEffect(()=>{if(selected&&Component)return;const element=scroller.current;if(!element)return;const measure=()=>setSize({width:element.clientWidth,height:element.clientHeight});const observer=new ResizeObserver(measure);observer.observe(element);measure();element.scrollTop=savedScroll.current;return()=>observer.disconnect()},[selected?.id,Component]);
- const destination=(id?:string)=>{const url=new URL(location.href);if(id)url.searchParams.set('flute-scene',id);else url.searchParams.delete('flute-scene');return url.pathname+url.search+url.hash;};
+ const destination=(id?:string)=>{const url=new URL(location.href);if(cameraEnabled && id!==sceneId)clearCameraQuery(url.searchParams);if(id)url.searchParams.set('flute-scene',id);else url.searchParams.delete('flute-scene');return url.pathname+url.search+url.hash;};
  const navigate=(event:MouseEvent<HTMLAnchorElement>,id?:string)=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();history.pushState({},'',destination(id));setSceneId(id);};
- if(selected&&Component)return <ScenePreview key={selected.id} definition={selected.definition} title={selected.title} backHref={destination()} onBack={()=>{history.pushState({},'',destination());setSceneId(undefined)}} hot={hot}>{content}</ScenePreview>;
+ if(selected&&Component){
+  const preview={definition:selected.definition,title:selected.title,backHref:destination(),onBack:()=>{history.pushState({},'',destination());setSceneId(undefined)},hot,children:content};
+  return cameraEnabled
+   ? <CameraPreview key={selected.id} sceneId={selected.id} storagePrefix={cameraOptions?.storagePrefix} {...preview}/>
+   : <ScenePreview key={selected.id} {...preview}/>;
+ }
  const planeWidth=Math.min(940,Math.max(320,width-64));
  const {start,end}=visibleRows(scroll,height,catalog.scenes.length);
  return <main data-flute-library=""><style>{libraryTheme}</style>

@@ -1,5 +1,5 @@
 {
-  "name": "@webprodigies/flute",
+  "name": "@rob3rt0-connected/flute",
   "version": "0.1.2",
   "type": "module",
   "scripts": {
@@ -90,7 +90,7 @@
   "optionalDependencies": {
     "playwright": "1.58.2"
   },
-  "description": "Cinematic 3D scenes from your live React application. Flute by Web Prodigies.",
+  "description": "Flute by Web Prodigies with Connected camera controls and keyframe editing.",
   "license": "MIT",
   "publishConfig": {
     "access": "public",
@@ -100,13 +100,13 @@
     "name": "Web Prodigies",
     "url": "https://www.youtube.com/@webprodigies"
   },
-  "homepage": "https://github.com/webprodigies-org/flute#readme",
+  "homepage": "https://github.com/rob3rt0-connected/flute#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/webprodigies-org/flute.git"
+    "url": "git+https://github.com/rob3rt0-connected/flute.git"
   },
   "bugs": {
-    "url": "https://github.com/webprodigies-org/flute/issues"
+    "url": "https://github.com/rob3rt0-connected/flute/issues"
   },
   "sideEffects": [
     "./dist/cli/flute.js"

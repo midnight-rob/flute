@@ -1,0 +1,238 @@
+.flute-camera-controls {
+  position: fixed;
+  z-index: 10;
+  top: 16px;
+  box-sizing: border-box;
+  border: 1px solid #ffffff30;
+  border-radius: 14px;
+  background: #202024;
+  color: #fff;
+  font: 500 13px/1.4 system-ui, sans-serif;
+}
+
+.flute-camera-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: grab;
+  user-select: none;
+}
+.flute-camera-surface:active { cursor: grabbing; }
+.flute-camera-surface:focus-visible { outline: 2px solid #b5b6ff; outline-offset: -3px; }
+
+.flute-camera-controls {
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  box-shadow: 0 4px 20px #0004;
+}
+.flute-camera-guide,
+.flute-camera-options,
+.flute-camera-instructions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 12px;
+}
+.flute-camera-guide { padding: 6px 8px; }
+.flute-camera-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.flute-camera-off {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #202024;
+  color: #dedee8;
+  font-size: 11px;
+}
+.flute-camera-controls[data-active="false"] .flute-camera-options {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 8px 12px;
+  border: 1px solid #ffffff30;
+  border-radius: 12px;
+  background: #202024;
+  box-shadow: 0 4px 20px #0004;
+}
+.flute-camera-controls[data-active="false"]:is(:hover, :has(.flute-camera-toggle:focus-visible)) .flute-camera-options {
+  display: flex;
+}
+.flute-camera-instructions > span { white-space: nowrap; }
+.flute-camera-controls kbd {
+  color: #c7c7f9;
+  font: inherit;
+  font-weight: 650;
+}
+.flute-camera-controls button,
+.flute-hud-more button,
+.flute-camera-actions button,
+.flute-camera-keyframe-popover button {
+  padding: 5px 10px;
+  border: 1px solid #ffffff30;
+  border-radius: 8px;
+  background: #38383d;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.flute-camera-controls button:enabled:hover,
+.flute-hud-more button:hover,
+.flute-camera-actions button:hover,
+.flute-camera-keyframe-popover button:enabled:hover { filter: brightness(1.2); }
+.flute-camera-controls button:disabled { opacity: .6; cursor: default; }
+.flute-camera-controls button[aria-expanded="true"] {
+  border-color: #b5b6ff;
+  background: #3a3a55;
+}
+.flute-camera-controls :focus-visible,
+.flute-camera-dock :is(button, [role="slider"]):focus-visible {
+  outline: 2px solid #b5b6ff;
+  outline-offset: 2px;
+}
+
+.flute-camera-overlay {
+  display: grid;
+  gap: 10px;
+  width: min(288px, 100%);
+  max-height: calc(100dvh - 88px);
+  overflow: auto;
+  box-sizing: border-box;
+  margin-inline: auto;
+  padding: 10px 12px 12px;
+  border-top: 1px solid #ffffff26;
+}
+.flute-camera-number {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.flute-camera-number-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #d0d0da;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.flute-camera-number input {
+  box-sizing: border-box;
+  width: 58px;
+  padding: 4px 5px;
+  border: 1px solid #ffffff30;
+  border-radius: 6px;
+  background: #15151a;
+  color: #fff;
+  font: 500 12px/1.4 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+[data-flute-preview] .flute-camera-dock {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  row-gap: 0;
+}
+.flute-camera-dock .flute-timeline { width: 100%; min-width: 0; }
+.flute-camera-dock:has(> :is([aria-label="Play"], [aria-label="Replay"]):enabled) + .flute-preview-meta > .flute-status {
+  display: none;
+}
+.flute-camera-markers {
+  position: relative;
+  grid-column: 3;
+  margin: -10px 7px 0;
+  height: 24px;
+  pointer-events: none;
+}
+.flute-camera-markers:empty { display: none; }
+.flute-camera-keyframe {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+.flute-camera-keyframe:focus-within { z-index: 2; }
+.flute-camera-keyframe:hover,
+.flute-camera-keyframe[data-dragging] { z-index: 3; }
+.flute-camera-marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.flute-camera-keyframe .flute-camera-marker {
+  position: relative;
+  transform: none;
+}
+.flute-camera-keyframe[data-editable] .flute-camera-marker {
+  cursor: grab;
+  touch-action: none;
+}
+.flute-camera-keyframe[data-dragging] .flute-camera-marker { cursor: grabbing; }
+.flute-camera-marker::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border: 1px solid #c7c7f9;
+  background: #c7c7f9;
+  transform: rotate(45deg);
+}
+.flute-camera-marker[data-draft]::before { background: #21212c; }
+.flute-camera-marker[aria-current],
+.flute-camera-marker[data-draft],
+.flute-camera-marker:hover,
+.flute-camera-marker:focus-visible { z-index: 1; }
+.flute-camera-marker[aria-current]::before,
+.flute-camera-marker:hover::before { box-shadow: 0 0 0 2px #23232e, 0 0 0 3px #fff; }
+.flute-camera-keyframe-popover {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 9px;
+  border: 1px solid #ffffff30;
+  border-radius: 10px;
+  background: #202024;
+  color: #fff;
+  font: 500 12px/1.4 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px #0006;
+}
+.flute-camera-keyframe:is(:hover, :focus-within, [data-dragging]) .flute-camera-keyframe-popover { display: flex; }
+.flute-camera-keyframe[data-dragging] .flute-camera-keyframe-popover { pointer-events: none; }
+.flute-camera-keyframe-popover button { padding: 4px 7px; }
+.flute-camera-keyframe-popover button:disabled { opacity: .55; cursor: default; }
+
+.flute-camera-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 8px;
+  font-size: 12px;
+  color: #fff;
+}
+.flute-camera-actions span { font-variant-numeric: tabular-nums; }
+.flute-camera-actions .flute-camera-save { background: #c7c7f9; color: #191929; font-weight: 650; }
+.flute-camera-actions button:disabled { opacity: .55; cursor: default; }
