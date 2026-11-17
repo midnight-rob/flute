@@ -2,7 +2,7 @@
 import { ProjectPreview } from "@rob3rt0-connected/flute/preview";
 import type { ComponentProps } from "react";
 
-const sceneModules = import.meta.env.DEV ? import.meta.glob("/src/flute/scenes/*.{scene.json,tsx}") : undefined;
+const sceneModules = import.meta.env.DEV ? import.meta.glob("/src/flute/scenes/*.{scene.json,tsx,jsx}") : undefined;
 
 export function FluteProjectPreview(props: Omit<ComponentProps<typeof ProjectPreview>, "sceneModules" | "hot">) {
   if (!import.meta.env.DEV) return props.children;
