@@ -130,7 +130,7 @@ it("uses the library callback for ordinary back clicks and retains native link d
   expect(within(controls()).getByText("Get started")).toBeTruthy();
 });
 
-it("resolves an unsaved camera edit before export and moves a saved key to an exact elapsed time", async () => {
+it("creates a keyframe from a camera change without a save step and moves it to an exact elapsed time", async () => {
   vi.stubGlobal("ResizeObserver", class {
     observe() {}
     disconnect() {}
@@ -143,15 +143,12 @@ it("resolves an unsaved camera edit before export and moves a saved key to an ex
     </CameraPreview>);
     const camera = await screen.findByRole("button", {name: "Camera"});
     fireEvent.click(camera);
-    fireEvent.keyDown(camera, {key: "ArrowRight"});
-    expect(screen.getByText("Unsaved camera edit")).toBeTruthy();
-    expect((screen.getByRole("button", {name: "Export"}) as HTMLButtonElement).disabled).toBe(true);
     expect(new URL(location.href).searchParams.has("keys")).toBe(false);
-    fireEvent.click(screen.getByRole("button", {name: "Discard"}));
-    expect(screen.queryByText("Unsaved camera edit")).toBeNull();
     fireEvent.keyDown(camera, {key: "ArrowRight"});
-    fireEvent.click(screen.getByRole("button", {name: "Save keyframe"}));
     expect(screen.queryByText("Unsaved camera edit")).toBeNull();
+    expect(screen.queryByRole("button", {name: "Save keyframe"})).toBeNull();
+    expect(screen.queryByRole("button", {name: "Discard"})).toBeNull();
+    expect((screen.getByRole("button", {name: "Export"}) as HTMLButtonElement).disabled).toBe(false);
     expect(localStorage.getItem(storageKey)).toBe(new URL(location.href).searchParams.get("keys"));
     const time = screen.getByLabelText("Keyframe time in seconds") as HTMLInputElement;
     fireEvent.change(time, {target: {value: "9"}});
