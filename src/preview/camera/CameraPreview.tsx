@@ -292,6 +292,7 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
   const [hosts, setHosts] = useState<{ viewport: HTMLElement; dock: HTMLElement } | null>(null);
   const [notice, setNotice] = useState("");
   const [lockedControl, setLockedControl] = useState<CameraHudControl | null>(null);
+  const [orbiting, setOrbiting] = useState(false);
   const saveTime = draft?.timeMs ?? sceneTime;
   const savedPose = useMemo(() => active ? poseAt(definition, saveTime) : null, [active, definition, saveTime]);
   const pose = draft?.pose ?? savedPose;
@@ -444,7 +445,10 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
         <div className="flute-camera-surface" role="region" aria-label="Camera preview"
           aria-describedby="flute-camera-gestures" tabIndex={0} data-flute-preview-chrome
           onPointerDown={event => {
-            if (event.button === 1 || (event.button === 0 && event.shiftKey)) startDrag(event, drag);
+            if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
+              startDrag(event, drag);
+              setOrbiting(true);
+            }
           }}
           onPointerMove={event => {
             const delta = dragDelta(event, drag);
@@ -452,11 +456,12 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
               moveCamera({ yaw: -delta.x * 0.22, pitch: delta.y * 0.22 }, true);
             }
           }}
-          onLostPointerCapture={() => { drag.current = null; }}
+          onLostPointerCapture={() => { drag.current = null; setOrbiting(false); }}
           onAuxClick={event => {
             if (event.button === 1) event.preventDefault();
           }}/>
         <CameraHud values={{ zoom: camera.z - pose.z, aperture: pose.fStop, roll: pose.rotateZ }}
+          attitude={{ pitch: pose.rotateX, yaw: pose.rotateY, active: orbiting }}
           focus={{ distance: pose.distance, min: minFocus, max: Math.max(4000, Math.ceil(savedPose.distance)) }}
           lockedControl={lockedControl} onLockChange={setLockedControl}
           onFocusChange={(distance, continuous) => editPose(current => ({ ...current, distance }), continuous)}

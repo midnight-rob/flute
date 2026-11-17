@@ -395,3 +395,52 @@
 @media (prefers-reduced-motion: reduce) {
   .flute-hud-section::before { transition: none; }
 }
+
+/* Pitch and yaw dials: inner back surface of a sphere behind the HUD, shown only while the angle changes. */
+.flute-hud-attitude { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+
+.flute-hud-dial {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.94);
+  transition: opacity 320ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 420ms;
+}
+
+.flute-hud-dial[data-visible] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.flute-hud-dial[data-axis="pitch"] {
+  mask-image: linear-gradient(to bottom, transparent calc(50% - var(--dial-reach)), #000 calc(50% - var(--dial-reach) * 0.55), #000 calc(50% + var(--dial-reach) * 0.55), transparent calc(50% + var(--dial-reach)));
+}
+
+.flute-hud-dial[data-axis="yaw"] {
+  mask-image: linear-gradient(to right, transparent calc(50% - var(--dial-reach)), #000 calc(50% - var(--dial-reach) * 0.55), #000 calc(50% + var(--dial-reach) * 0.55), transparent calc(50% + var(--dial-reach)));
+}
+
+.flute-hud-dial i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: #181818;
+  box-shadow: 0 0 2px #fff, 0 0 4px #fff8;
+  will-change: transform, opacity;
+}
+
+/* Every mark spans the same distance on the sphere; the 3D projection alone sets its size, position and lean. */
+.flute-hud-dial i {
+  width: var(--tick-length);
+  height: var(--tick-thickness);
+  transform: translate(-50%, -50%) translate(var(--tick-x), var(--tick-y)) rotate(var(--tick-angle));
+}
+
+.flute-hud-dial i[data-zero] { background: #5848a6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flute-hud-dial { transform: none; transition: opacity 200ms ease, visibility 0s linear 200ms; }
+}

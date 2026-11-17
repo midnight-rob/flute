@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { CameraAttitudeDial } from "./CameraAttitudeDial";
 import { useFrameBatch } from "./useFrameBatch";
 
 const ringAssets = import.meta.glob<string>("./assets/zoom-ring-*.svg", {
@@ -132,8 +133,9 @@ export function CameraNumber({ label, value, decimals = 0, unit, onCommit }: {
   </label>;
 }
 
-export function CameraHud({ values, focus, onChange, onFocusChange, lockedControl, onLockChange, children }: {
+export function CameraHud({ values, attitude, focus, onChange, onFocusChange, lockedControl, onLockChange, children }: {
   values: HudValues;
+  attitude?: { pitch: number; yaw: number; active: boolean };
   focus: { distance: number; min: number; max: number };
   onChange: (control: HudControl, value: number, continuous: boolean) => void;
   onFocusChange: (distance: number, continuous: boolean) => void;
@@ -361,6 +363,7 @@ export function CameraHud({ values, focus, onChange, onFocusChange, lockedContro
       event.preventDefault();
       onLockChange(null);
     }}>
+    {attitude && <CameraAttitudeDial {...attitude} width={size.width} height={size.height}/>}
     {scale > 0 && <>
       <div className="flute-hud-circle" ref={circle} style={{
         transform: `translate(-50%, -50%) scale(${scale})`,
