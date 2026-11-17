@@ -29,7 +29,7 @@ async function fixture(options: { installed?: boolean; source?: string } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "flute-project-"));
   roots.push(root);
   await put(root, "package.json", JSON.stringify({ name: "host", scripts: { dev: "vite" },
-    dependencies: { react: "^19.2.0", "react-dom": "^19.2.0", ...(options.installed === false ? {} : { "@rob3rt0-connected/flute": "0.1.0" }) },
+    dependencies: { react: "^19.2.0", "react-dom": "^19.2.0", ...(options.installed === false ? {} : { "@midnight-rob/flute": "0.1.0" }) },
     devDependencies: { vite: "^7.3.6" } }));
   await put(root, "package-lock.json", '{"lockfileVersion":3}');
   await put(root, "index.html", '<div id="root"></div><script type="module" src="/src/main.tsx"></script>');
@@ -43,10 +43,10 @@ async function fixture(options: { installed?: boolean; source?: string } = {}) {
 }
 async function installFixture(root: string) {
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
-  pkg.dependencies["@rob3rt0-connected/flute"] = "0.1.0";
+  pkg.dependencies["@midnight-rob/flute"] = "0.1.0";
   await put(root, "package.json", JSON.stringify(pkg));
-  await put(root, "node_modules/@rob3rt0-connected/flute/package.json", JSON.stringify({ name: "@rob3rt0-connected/flute", version: "0.1.0", exports: { "./preview": { import: "./preview.js" } } }));
-  await put(root, "node_modules/@rob3rt0-connected/flute/preview.js", "export const ProjectPreview = () => null;");
+  await put(root, "node_modules/@midnight-rob/flute/package.json", JSON.stringify({ name: "@midnight-rob/flute", version: "0.1.0", exports: { "./preview": { import: "./preview.js" } } }));
+  await put(root, "node_modules/@midnight-rob/flute/preview.js", "export const ProjectPreview = () => null;");
 }
 function run(root: string, operation: unknown = "init-project", input: unknown = {}) {
   return executeProjectCommand(operation, input, { root });
@@ -171,7 +171,7 @@ describe("trusted project commands", () => {
     const root = await fixture({ installed: false });
     const result = await run(root);
     failure(result, "package-unavailable");
-    expect(JSON.stringify(result)).toContain("npm install @rob3rt0-connected/flute");
+    expect(JSON.stringify(result)).toContain("npm install @midnight-rob/flute");
     expect(await readdir(root)).not.toContain(".flute");
     expect(await readFile(path.join(root, "src/main.tsx"), "utf8")).toBe(original);
   });
@@ -181,14 +181,14 @@ describe("trusted project commands", () => {
     await put(root, "src/main.tsx", original);
     failure(await run(root, "load-project"), "conflict");
     failure(await run(root), "conflict");
-    await put(root, "node_modules/@rob3rt0-connected/flute/preview.js", "export {}");
-    await rm(path.join(root, "node_modules/@rob3rt0-connected/flute/preview.js"));
+    await put(root, "node_modules/@midnight-rob/flute/preview.js", "export {}");
+    await rm(path.join(root, "node_modules/@midnight-rob/flute/preview.js"));
     failure(await run(root, "validate-project"), "conflict");
   });
   it("checks installed preview export on repeat even when state and wrapper exist", async () => {
     const root = await fixture();
     success(await run(root));
-    await rm(path.join(root, "node_modules/@rob3rt0-connected/flute/preview.js"));
+    await rm(path.join(root, "node_modules/@midnight-rob/flute/preview.js"));
     failure(await run(root, "validate-project"), "missing-installation");
     failure(await run(root), "missing-installation");
   });
@@ -201,7 +201,7 @@ describe("trusted project commands", () => {
   it.each([".flute", "FLUTE.md", "src/main.tsx", "package-lock.json", "vite.config.ts"])("denies symlink targets %s before writing", async target => {
     const root = await fixture();
     const outside = await fixture();
-    const destination = [".flute", "node_modules/@rob3rt0-connected/flute"].includes(target) ? outside : path.join(outside, "src/main.tsx");
+    const destination = [".flute", "node_modules/@midnight-rob/flute"].includes(target) ? outside : path.join(outside, "src/main.tsx");
     await rm(path.join(root, target), { recursive: true, force: true });
     await symlink(destination, path.join(root, target));
     failure(await run(root), "denied-path");
@@ -266,7 +266,7 @@ describe("trusted project commands", () => {
     const project = success(await run(root)).project!;
     const url = await server(route => ({ text: route === "/"
       ? '<script type="module" src="/@vite/client"></script><script type="module">import RefreshRuntime from "/@react-refresh";</script><script type="module" src="/src/main.tsx"></script>'
-      : 'import {ProjectPreview} from "/node_modules/.vite/deps/@rob3rt0-connected_flute_preview.js"; const projectId="' + project.projectId + '";' }));
+      : 'import {ProjectPreview} from "/node_modules/.vite/deps/@midnight-rob_flute_preview.js"; const projectId="' + project.projectId + '";' }));
     const open = vi.spyOn(services, "openBrowser").mockResolvedValue();
     expect(success(await run(root, "open-preview", { url, launch: false })).url).toBe(url + "/?flute-preview=1");
     expect(open).not.toHaveBeenCalled();
@@ -304,7 +304,7 @@ describe("trusted project commands", () => {
     const root = await fixture({ installed: false });
     await put(root, "flute.tgz", "fixture transport only");
     const install = vi.spyOn(services, "installPackage").mockImplementationOnce(async project => {
-      await put(project, "node_modules/@rob3rt0-connected/flute/package.json", '{');
+      await put(project, "node_modules/@midnight-rob/flute/package.json", '{');
       throw new Error("interrupted install");
     });
     failure(await run(root, "init-project", { packageSource: "./flute.tgz" }), "project-error");
@@ -340,7 +340,7 @@ describe("installed coding-agent handoff", () => {
     expect(first.handoff).toMatchObject({ path: "FLUTE.md", guideCommand: "npx flute guide --json", guideVersion: RESOURCES["authoring-guide"]().version });
     expect(first.handoff!.prompt).toContain("<page route or component path>");
     const text = await readFile(path.join(root, "FLUTE.md"), "utf8");
-    for (const pointer of [FLUTE_BRAND.title, FLUTE_BRAND.url, "npx flute guide --json", "capabilities.api", "@rob3rt0-connected/flute/preview", "src/flute/scenes"])
+    for (const pointer of [FLUTE_BRAND.title, FLUTE_BRAND.url, "npx flute guide --json", "capabilities.api", "@midnight-rob/flute/preview", "src/flute/scenes"])
       expect(text).toContain(pointer);
     expect(text).not.toContain(RESOURCES["authoring-guide"]().concepts[0].mechanism);
     const repeat = success(await run(root));
@@ -448,7 +448,7 @@ describe("generated preview refresh boundary setup", () => {
     const props = `projectId="${id}" enabled={import.meta.env.DEV}`
       + (version >= 3 ? ' hot={import.meta.hot}' : '')
       + (version >= 4 ? ' sceneModules={import.meta.env.DEV ? import.meta.glob("/src/flute/scenes/*.{scene.json,tsx}") : undefined}' : '');
-    return 'import { ProjectPreview as FluteProjectPreview } from "@rob3rt0-connected/flute/preview";\n'
+    return 'import { ProjectPreview as FluteProjectPreview } from "@midnight-rob/flute/preview";\n'
       + original.replace('<StrictMode>', `<FluteProjectPreview ${props}>{<StrictMode>`)
         .replace('</StrictMode>,', '</StrictMode>}</FluteProjectPreview>,');
   }

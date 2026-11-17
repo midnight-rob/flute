@@ -1,6 +1,12 @@
 # Changelog
 
-All notable changes to `@rob3rt0-connected/flute` are listed here. The project follows [semantic versioning](https://semver.org/). This fork is based on [Flute by Web Prodigies](https://github.com/webprodigies-org/flute) 0.1.2.
+All notable changes to `@midnight-rob/flute` are listed here. The project follows [semantic versioning](https://semver.org/). This fork is based on [Flute by Web Prodigies](https://github.com/webprodigies-org/flute) 0.1.2.
+
+## 0.1.5
+
+### Changed
+- The package moved to the `@midnight-rob` scope (`@midnight-rob/flute`) and the source to [midnight-rob/flute](https://github.com/midnight-rob/flute) after the GitHub account was renamed. Update imports from `@rob3rt0-connected/flute` to `@midnight-rob/flute`.
+- This is the first version published to npm. It includes everything from 0.1.4 below; 0.1.4 was only tagged on GitHub and never published.
 
 ## 0.1.4
 

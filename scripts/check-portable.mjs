@@ -19,11 +19,11 @@ try{
  await mkdir(host,{recursive:true});
  const published=process.env.FLUTE_REGISTRY_PACKAGE;
  const packed=published?undefined:JSON.parse(await run('npm',['pack','--ignore-scripts','--json','--pack-destination',scratch],root));
- const tarball=published?published.replace(/^@rob3rt0-connected\/flute@/,''):path.join(scratch,packed[0].filename);
+ const tarball=published?published.replace(/^@midnight-rob\/flute@/,''):path.join(scratch,packed[0].filename);
  const react=kind==='app'?'19.2.0':'18.3.1';
- await put('package.json',JSON.stringify({private:true,type:'module',dependencies:{react,'react-dom':react,'@rob3rt0-connected/flute':tarball,...(kind!=='react'?{next:'16.3.5'}:{'@types/react':'^18.3.0','@types/react-dom':'^18.3.0',typescript:'5.9.3'})}}));
+ await put('package.json',JSON.stringify({private:true,type:'module',dependencies:{react,'react-dom':react,'@midnight-rob/flute':tarball,...(kind!=='react'?{next:'16.3.5'}:{'@types/react':'^18.3.0','@types/react-dom':'^18.3.0',typescript:'5.9.3'})}}));
  await run('npm',['install','--ignore-scripts','--no-audit','--no-fund',...(published?['--cache',path.join(scratch,'cache'),'--registry','https://registry.npmjs.org/']:[])]);
- if(published){const installed=JSON.parse(await readFile(path.join(host,'node_modules/@rob3rt0-connected/flute/package.json'),'utf8'));assert.equal(installed.name+'@'+installed.version,published);}
+ if(published){const installed=JSON.parse(await readFile(path.join(host,'node_modules/@midnight-rob/flute/package.json'),'utf8'));assert.equal(installed.name+'@'+installed.version,published);}
  const counter='"use client";\nimport React,{createContext,useContext,useState} from "react";\nconst Context=createContext("missing");\nexport function Provider({children}) {return <Context.Provider value="existing provider">{children}</Context.Provider>}\nexport default function Counter(){const value=useContext(Context);const [count,setCount]=useState(0);return <article style={{background:"#fafafa",color:"#111",padding:40,width:700,height:400}}><h1>{value}</h1><button onClick={()=>setCount(c=>c+1)}>Count {count}</button></article>}';
  await put('src/Counter.jsx',counter);
  if(kind==='app'){
@@ -33,13 +33,13 @@ try{
   await put('pages/_app.jsx','import React from "react"; import {Provider} from "../src/Counter"; export default function App({Component,pageProps}){return <Provider><Component {...pageProps}/></Provider>}');
   await put('pages/index.jsx','export {default} from "../src/Counter";');
  }
- const cli=path.join(host,'node_modules/@rob3rt0-connected/flute/dist/cli/flute.js');
+ const cli=path.join(host,'node_modules/@midnight-rob/flute/dist/cli/flute.js');
  const initialized=JSON.parse(await run(process.execPath,[cli,'init','--json']));
  assert.equal(initialized.success,true);assert.equal(initialized.data.integration.kind,kind==='react'?'react':'next-'+kind);
  assert.equal(JSON.parse(await run(process.execPath,[cli,'init','--json'])).data.changed,false);
  const recipe={version:1,id:'survey',title:'Host survey',definition:{width:1000,height:700,scene:{nodes:[{id:'host'}],camera:{rotateY:20,perspective:1800}},motion:{durationMs:200,tracks:[]}}};
  await put('src/flute/scenes/survey.scene.json',JSON.stringify(recipe));
- await put('src/flute/scenes/survey.jsx','"use client";\nimport React from "react"; import {Surface} from "@rob3rt0-connected/flute"; import Counter from "../../Counter"; export default function HostScene(){return <Surface id="host"><Counter/></Surface>}');
+ await put('src/flute/scenes/survey.jsx','"use client";\nimport React from "react"; import {Surface} from "@midnight-rob/flute"; import Counter from "../../Counter"; export default function HostScene(){return <Surface id="host"><Counter/></Surface>}');
  await run(process.execPath,[cli,'sync']);
  await run(process.execPath,[cli,'validate']);
  browser=await chromium.launch();
@@ -47,7 +47,7 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  let url;let dev;
  if(kind==='react'){
-  await put('check.tsx','import React from "react"; import {Scene,Surface} from "@rob3rt0-connected/flute"; import {ProjectPreview} from "@rob3rt0-connected/flute/preview"; export const check=<ProjectPreview projectId="test" enabled active><Scene><Surface id="test">Host</Surface></Scene></ProjectPreview>;');
+  await put('check.tsx','import React from "react"; import {Scene,Surface} from "@midnight-rob/flute"; import {ProjectPreview} from "@midnight-rob/flute/preview"; export const check=<ProjectPreview projectId="test" enabled active><Scene><Surface id="test">Host</Surface></Scene></ProjectPreview>;');
   await run(process.execPath,['node_modules/typescript/bin/tsc','--noEmit','--strict','--jsx','react-jsx','--module','esnext','--moduleResolution','bundler','--target','es2022','--allowSyntheticDefaultImports','check.tsx']);
   await put('entry.jsx' ,'import React from "react"; import {createRoot} from "react-dom/client"; import {FluteProjectPreview} from "./src/flute/ProjectPreview"; import Counter,{Provider} from "./src/Counter"; createRoot(document.getElementById("root")).render(<Provider><FluteProjectPreview enabled active><Counter/></FluteProjectPreview></Provider>);');
   await run(path.join(root,'node_modules/.bin/esbuild'),['entry.jsx','--bundle','--outfile=bundle.js','--define:process.env.NODE_ENV="development"']);

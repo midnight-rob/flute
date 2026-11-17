@@ -169,7 +169,7 @@ export async function openBrowser(root: string, url: string) {
 export async function localPackageSource(root: string, source: string): Promise<string> {
   const filename = path.isAbsolute(source) ? source : await scopedPath(root, source.replace(/^\.\//, ""));
   const stat = await lstat(filename).catch(error => {
-    if (error.code === "ENOENT") throw fault("package-unavailable", "Local Flute tarball was not found. Correct --package to an existing .tgz file, or install @rob3rt0-connected/flute locally and run npx flute init.", source);
+    if (error.code === "ENOENT") throw fault("package-unavailable", "Local Flute tarball was not found. Correct --package to an existing .tgz file, or install @midnight-rob/flute locally and run npx flute init.", source);
     throw error;
   });
   if (!stat.isFile() || stat.isSymbolicLink()) throw fault("denied-path", "Package source must be a regular local tarball.");
@@ -182,7 +182,7 @@ export function pause(milliseconds: number): Promise<void> {
 
 /** Read-only dependency resolution; hoisted and pnpm-linked packages are not mutation targets. */
 export async function readDependency(root:string,name:string,target="package.json"):Promise<string|undefined> {
-  if (!["react","react-dom","@rob3rt0-connected/flute"].includes(name)) throw fault("invalid-input","Unknown runtime dependency.");
+  if (!["react","react-dom","@midnight-rob/flute"].includes(name)) throw fault("invalid-input","Unknown runtime dependency.");
   relativeTarget(target);
   const candidates=createRequire(path.join(root,"package.json")).resolve.paths(name)??[];
   for(const modules of candidates) {

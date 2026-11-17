@@ -1,6 +1,6 @@
 {
-  "name": "@rob3rt0-connected/flute",
-  "version": "0.1.4",
+  "name": "@midnight-rob/flute",
+  "version": "0.1.5",
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -102,8 +102,8 @@
   },
   "contributors": [
     {
-      "name": "rob3rt0-connected",
-      "url": "https://github.com/rob3rt0-connected"
+      "name": "midnight-rob",
+      "url": "https://github.com/midnight-rob"
     }
   ],
   "keywords": [
@@ -119,13 +119,13 @@
     "vite",
     "nextjs"
   ],
-  "homepage": "https://github.com/rob3rt0-connected/flute#readme",
+  "homepage": "https://github.com/midnight-rob/flute#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rob3rt0-connected/flute.git"
+    "url": "git+https://github.com/midnight-rob/flute.git"
   },
   "bugs": {
-    "url": "https://github.com/rob3rt0-connected/flute/issues"
+    "url": "https://github.com/midnight-rob/flute/issues"
   },
   "sideEffects": [
     "./dist/cli/flute.js"

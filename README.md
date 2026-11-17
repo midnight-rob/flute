@@ -2,7 +2,7 @@
 
 Cinematic 3D scenes made from your **real React UI**. Your coding agent composes the camera, depth, focus and motion. Flute provides the renderer, scene library, playback and MP4 export. Your app keeps its components, providers and styles.
 
-This repository is a fork of [Flute by Web Prodigies](https://github.com/webprodigies-org/flute) that adds a hands-on **camera editor** to the preview: orbit, zoom, roll, aperture and focus controls, live pitch/yaw dials, and a keyframe timeline you can edit directly. It is published as [`@rob3rt0-connected/flute`](https://www.npmjs.com/package/@rob3rt0-connected/flute).
+This repository is a fork of [Flute by Web Prodigies](https://github.com/webprodigies-org/flute) that adds a hands-on **camera editor** to the preview: orbit, zoom, roll, aperture and focus controls, live pitch/yaw dials, and a keyframe timeline you can edit directly. It is published as [`@midnight-rob/flute`](https://www.npmjs.com/package/@midnight-rob/flute).
 
 Open source under the [MIT license](LICENSE). Runs locally, with your existing coding agent. No account or AI subscription connection is needed in Flute.
 
@@ -39,31 +39,31 @@ From your existing app's directory, **create a separate Git branch before instal
 
 ```sh
 git switch -c flute-scenes
-npm install -D @rob3rt0-connected/flute
+npm install -D @midnight-rob/flute
 npx flute init
 npm run dev
 ```
 
-pnpm and yarn work the same way (`pnpm add -D @rob3rt0-connected/flute`, `pnpm exec flute init`).
+pnpm and yarn work the same way (`pnpm add -D @midnight-rob/flute`, `pnpm exec flute init`).
 
 ### Install from a tarball
 
 Use a tarball when you want to test an unpublished build or pin an exact archive in a private project. Build one from this checkout (see [Build and publish](#build-and-publish)), then install it:
 
 ```sh
-npm install -D ./vendor/rob3rt0-connected-flute-0.1.4.tgz
+npm install -D ./vendor/midnight-rob-flute-0.1.5.tgz
 npx flute init
 ```
 
 Keep the archive inside the consuming project (for example `vendor/`) when its lockfile has to work on another machine or in CI. An archive stored outside the project must be available wherever that project installs dependencies.
 
-### Migrating from `@webprodigies/flute`
+### Migrating from `@webprodigies/flute` or `@rob3rt0-connected/flute`
 
-Change your `@webprodigies/flute` and `@webprodigies/flute/preview` imports to `@rob3rt0-connected/flute` and `@rob3rt0-connected/flute/preview`. Then:
+Change your `@webprodigies/flute` (or earlier `@rob3rt0-connected/flute`) imports, including the `/preview` entry, to `@midnight-rob/flute` and `@midnight-rob/flute/preview`. Then:
 
 - `ProjectPreview` enables the camera editor on animated scenes by default. Pass `camera={{ sceneIds: ["your-scene"] }}` to limit it to particular scenes, or `camera={false}` to turn it off.
 - Pass `storagePrefix` in that options object when migrating existing camera keys that use a custom namespace.
-- Custom hosts can render `CameraPreview` from `@rob3rt0-connected/flute/preview` with their scene ID, preview definition and original scene children.
+- Custom hosts can render `CameraPreview` from `@midnight-rob/flute/preview` with their scene ID, preview definition and original scene children.
 
 ### Open the studio
 
@@ -185,7 +185,7 @@ npm ci
 npm run release:local
 ```
 
-This runs the `prepack` build (architecture check, type-check, library and CLI builds) and writes `rob3rt0-connected-flute-<version>.tgz` into `.release/`. Inspect what would ship, which is only `package.json`, `README.md`, `LICENSE` and `dist/`:
+This runs the `prepack` build (architecture check, type-check, library and CLI builds) and writes `midnight-rob-flute-<version>.tgz` into `.release/`. Inspect what would ship, which is only `package.json`, `README.md`, `LICENSE` and `dist/`:
 
 ```sh
 npm pack --dry-run
@@ -200,7 +200,7 @@ npm pack --dry-run
 Two ways to publish:
 
 - **Manually:** from the clean committed candidate, run `npm run release:publish` and complete npm's private authentication prompt.
-- **GitHub Actions:** [`publish.yml`](.github/workflows/publish.yml) publishes new versions from `main` through npm trusted publishing (OIDC), so no token is stored. It checks npm first and stops if the version already exists. Configure the trusted publisher on npm with GitHub owner `rob3rt0-connected`, repository `flute`, workflow `publish.yml` and environment `npm`, and let the GitHub `npm` environment deploy from `main`. Never commit npm tokens.
+- **GitHub Actions:** [`publish.yml`](.github/workflows/publish.yml) publishes new versions from `main` through npm trusted publishing (OIDC), so no token is stored. It checks npm first and stops if the version already exists. Configure the trusted publisher on npm with GitHub owner `midnight-rob`, repository `flute`, workflow `publish.yml` and environment `npm`, and let the GitHub `npm` environment deploy from `main`. Never commit npm tokens.
 
 npm versions are immutable, so changing source without a version bump does not update the public package. After publishing, run `npm run test:published` to check the exact public version in a fresh installed app.
 
@@ -218,6 +218,6 @@ Resolve conflicts in `src/preview/camera/` and the package scope, re-run `npm ru
 
 ## Credits and license
 
-Flute is created by [Web Prodigies](https://www.youtube.com/@webprodigies). This fork keeps their MIT license and adds the Connected camera editor. Source: [rob3rt0-connected/flute](https://github.com/rob3rt0-connected/flute). Upstream: [webprodigies-org/flute](https://github.com/webprodigies-org/flute).
+Flute is created by [Web Prodigies](https://www.youtube.com/@webprodigies). This fork keeps their MIT license and adds the Connected camera editor. Source: [midnight-rob/flute](https://github.com/midnight-rob/flute). Upstream: [webprodigies-org/flute](https://github.com/webprodigies-org/flute).
 
 Released under the [MIT license](LICENSE).
