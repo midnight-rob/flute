@@ -6,7 +6,7 @@ Open source under the [MIT license](LICENSE). Runs locally, with your existing c
 
 ## Connected fork
 
-`@rob3rt0-connected/flute` builds on Flute 0.1.2. Animated scenes opened through `ProjectPreview` load their saved camera motion and timeline markers immediately. The camera editor starts collapsed. Enable it to pan with the arrow keys, orbit with a middle drag, zoom with the wheel, or adjust zoom, roll, aperture, and focus in the HUD. Press **K** to save a keyframe. Drag a timeline marker to move it, or use its hover menu to duplicate or delete it.
+`@rob3rt0-connected/flute` builds on Flute 0.1.2. Animated scenes opened through `ProjectPreview` load their saved camera motion and timeline markers immediately. The camera editor starts collapsed. Enable it to pan with the arrow keys, orbit with a middle drag, zoom with the wheel, or adjust zoom, roll, aperture, and focus in the HUD. Hold **Shift** for finer zoom, focus, and roll drags or finer scroll zoom. Press **K** to save a keyframe. Drag a timeline marker to move it, or use its menu to enter an exact time in seconds, duplicate it, or delete it. If a camera edit is pending, use **Save keyframe** or **Discard** beside Export to resolve it before opening the export menu.
 
 The package includes the HUD graphics and styles. It stores keyframes per project and scene in the browser, and carries them in the preview URL so an export can reproduce the same shot. Your scene components and recipes live in your app.
 
@@ -25,12 +25,12 @@ From your existing app's directory, **create a separate Git branch before instal
 
 ```sh
 git switch -c flute-scenes
-pnpm add -D /path/to/shared/packages/rob3rt0-connected-flute-0.1.2.tgz
+pnpm add -D /path/to/shared/packages/rob3rt0-connected-flute-0.1.3.tgz
 pnpm exec flute init
 pnpm dev
 ```
 
-Use the same versioned archive in each project. pnpm shares package contents through its local store while each app declares its own dependency and resolves its own React peer. For an npm project, use `npm install -D /path/to/shared/packages/rob3rt0-connected-flute-0.1.2.tgz` and `npx flute init`. An external archive path must also be available wherever that project installs its dependencies. Keep an archive inside the project when the lockfile needs to work on another machine or in CI.
+Use the same versioned archive in each project. pnpm shares package contents through its local store while each app declares its own dependency and resolves its own React peer. For an npm project, use `npm install -D /path/to/shared/packages/rob3rt0-connected-flute-0.1.3.tgz` and `npx flute init`. An external archive path must also be available wherever that project installs its dependencies. Keep an archive inside the project when the lockfile needs to work on another machine or in CI.
 
 For an existing Flute integration, change your `@webprodigies/flute` and `@webprodigies/flute/preview` imports to the Connected scope. `ProjectPreview` enables the camera editor on animated scenes by default. Pass `camera={{ sceneIds: ["your-scene"] }}` to limit it to particular scenes, or `camera={false}` to turn it off. Pass `storagePrefix` in that options object when migrating existing camera keys that use a custom namespace. Custom hosts can render `CameraPreview` from `@rob3rt0-connected/flute/preview` with their scene ID, preview definition, and original scene children.
 

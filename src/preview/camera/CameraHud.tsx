@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { useFrameBatch } from "./useFrameBatch";
 
 const ringAssets = import.meta.glob<string>("./assets/zoom-ring-*.svg", {
   eager: true, query: "?inline", import: "default",
@@ -20,6 +21,7 @@ const diameter = 505;
 const radius = diameter / 2;
 const horizonWidth = 1569;
 const rollDisplayLimit = 3;
+const fineAdjustment = 0.2;
 const rollTickCount = 33;
 const rollTickStep = 1.75;
 const circleLimits = {
@@ -83,9 +85,11 @@ type HudDrag = {
   id: number;
   x: number;
   y: number;
+  originX: number;
+  originY: number;
   moved: boolean;
 } & (
-  | { control: CircleControl; start: number }
+  | { control: CircleControl; start: number; lastDistance: number; distance: number }
   | { control: "roll"; start: number; value: number; lastAngle?: number | null }
 );
 
@@ -131,8 +135,8 @@ export function CameraNumber({ label, value, decimals = 0, unit, onCommit }: {
 export function CameraHud({ values, focus, onChange, onFocusChange, lockedControl, onLockChange, children }: {
   values: HudValues;
   focus: { distance: number; min: number; max: number };
-  onChange: (control: HudControl, value: number) => void;
-  onFocusChange: (distance: number) => void;
+  onChange: (control: HudControl, value: number, continuous: boolean) => void;
+  onFocusChange: (distance: number, continuous: boolean) => void;
   lockedControl: CameraHudControl | null;
   onLockChange: (control: CameraHudControl | null) => void;
   children: ReactNode;
@@ -142,6 +146,7 @@ export function CameraHud({ values, focus, onChange, onFocusChange, lockedContro
   const drag = useRef<HudDrag | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [rollTilt, setRollTilt] = useState<number | null>(null);
+  const rollPreview = useFrameBatch<number>(setRollTilt);
   const circleControl = lockedControl === "focus" ? "focus" : "zoom";
   const rollLocked = lockedControl === "roll";
 
@@ -214,49 +219,57 @@ export function CameraHud({ values, focus, onChange, onFocusChange, lockedContro
   const rollRadius = Math.min(size.width * 0.405, size.height * 0.72);
   const displayRoll = rollLocked ? rollTilt ?? 0 : 0;
   const rollOverflow = roll - clamp(roll, -rollDisplayLimit, rollDisplayLimit);
-  const rollDisplay = Math.abs(roll) < 0.5 ? "0°" : `${roll > 0 ? "+" : "−"}${Math.round(Math.abs(roll))}°`;
+  const rollAngle = Math.round(Math.abs(roll) * 10) / 10;
+  const rollDisplay = rollAngle === 0 ? "0°" : `${roll > 0 ? "+" : "−"}${rollAngle}°`;
 
-  function commit(control: CameraHudControl, value: number) {
+  function commit(control: CameraHudControl, value: number, continuous = false) {
     if (lockedControl !== control) return;
     const { min, max } = control === "focus" ? focus : hudRanges[control];
     const next = clamp(value, min, max);
     if (control === "focus") {
-      if (next !== focus.distance) onFocusChange(next);
-    } else if (next !== values[control]) onChange(control, next);
+      if (continuous || next !== focus.distance) onFocusChange(next, continuous);
+    } else if (continuous || next !== values[control]) onChange(control, next, continuous);
   }
 
   function start(control: DragControl, event: PointerEvent<HTMLElement>) {
     if (lockedControl !== control || event.button !== 0 || !event.isPrimary || drag.current) return;
+    const bounds = root.current?.getBoundingClientRect();
+    if (!bounds) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    const pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    const pointer = {
+      id: event.pointerId, x: event.clientX, y: event.clientY, moved: false,
+      originX: bounds.left + bounds.width / 2, originY: bounds.top + bounds.height / 2,
+    };
     if (control === "roll") {
       const start = clamp(roll, hudRanges.roll.min, hudRanges.roll.max);
       drag.current = { ...pointer, control, start, value: start };
     } else {
-      drag.current = { ...pointer, control, start: dragValues[control] };
+      drag.current = { ...pointer, control, start: dragValues[control], lastDistance: 0, distance: 0 };
     }
   }
 
   function move(event: PointerEvent<HTMLElement>) {
     const gesture = drag.current;
-    const bounds = root.current?.getBoundingClientRect();
-    if (!gesture || gesture.control !== lockedControl || gesture.id !== event.pointerId || !bounds) return;
+    if (!gesture || gesture.control !== lockedControl || gesture.id !== event.pointerId) return;
     const dx = event.clientX - gesture.x;
     const dy = event.clientY - gesture.y;
     if (!gesture.moved && Math.hypot(dx, dy) < 3) return;
     gesture.moved = true;
 
-    const x = gesture.x - bounds.left - bounds.width / 2;
-    const y = gesture.y - bounds.top - bounds.height / 2;
+    const x = gesture.x - gesture.originX;
+    const y = gesture.y - gesture.originY;
     const angle = angleAt(x, y);
     const { control } = gesture;
     const { min, max } = dragRanges[control];
+    const sensitivity = event.shiftKey ? fineAdjustment : 1;
     if (control !== "roll") {
       const startValue = clamp(gesture.start, min, max);
       const direction = polar(angle, 1);
       const distance = dx * direction.x + dy * direction.y;
+      gesture.distance += (distance - gesture.lastDistance) * sensitivity;
+      gesture.lastDistance = distance;
       const dragRange = Math.max(96, baseDiameter * 0.48);
-      commit(control, Math.round(startValue + distance / dragRange * (max - min)));
+      commit(control, Math.round(startValue + gesture.distance / dragRange * (max - min)), true);
     } else {
       if (Math.hypot(x, y) < 16) return;
       if (Math.hypot(x + dx, y + dy) < 16) {
@@ -266,16 +279,19 @@ export function CameraHud({ values, focus, onChange, onFocusChange, lockedContro
       const nextAngle = angleAt(x + dx, y + dy);
       const previousAngle = gesture.lastAngle === undefined ? angle : gesture.lastAngle ?? nextAngle;
       gesture.lastAngle = nextAngle;
-      gesture.value = clamp(gesture.value + angleDifference(nextAngle, previousAngle) * 2, min, max);
-      setRollTilt(clamp(gesture.value - gesture.start, -rollDisplayLimit, rollDisplayLimit));
-      commit(control, Math.round(gesture.value));
+      gesture.value = clamp(gesture.value + angleDifference(nextAngle, previousAngle) * 2 * sensitivity, min, max);
+      rollPreview.schedule(clamp(gesture.value - gesture.start, -rollDisplayLimit, rollDisplayLimit));
+      commit(control, Math.round(gesture.value * 10) / 10, true);
     }
   }
 
   function finish(event: PointerEvent<HTMLElement>) {
     const gesture = drag.current;
     if (!gesture || gesture.id !== event.pointerId) return;
-    if (gesture.control === "roll") setRollTilt(null);
+    if (gesture.control === "roll") {
+      rollPreview.take();
+      setRollTilt(null);
+    }
     drag.current = null;
   }
 
@@ -392,7 +408,7 @@ export function CameraHud({ values, focus, onChange, onFocusChange, lockedContro
             title={lockedControl === "aperture" ? "Drag left to open the aperture or right to close it" : undefined}
             min={hudRanges.aperture.min} max={hudRanges.aperture.max} step={hudRanges.aperture.step} value={aperture}
             aria-valuetext={`f/${aperture.toFixed(1)}`}
-            onChange={event => commit("aperture", event.currentTarget.valueAsNumber)}/>
+            onChange={event => commit("aperture", event.currentTarget.valueAsNumber, true)}/>
         </div>
         <div className="flute-hud-roll-end" data-hud-control="roll"
           style={{ left: `calc(50% + ${rollRadius}px)`, transform: `translate(-50%, -50%) rotate(${-displayRoll}deg)` }}>

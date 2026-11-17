@@ -24,6 +24,8 @@ export type ScenePreviewProps = {
   backHref?: string;
   /** Intercept ordinary back navigation; modified link clicks keep backHref. */
   onBack?: () => void;
+  /** Show actions beside Export and disable the export menu until they are resolved. */
+  exportGuard?: ReactNode;
   revision?: unknown;
   hot?: PreviewHot;
 };
@@ -75,7 +77,7 @@ function ExportMenu({disabled, panelHost}: {disabled: boolean; panelHost: HTMLDi
     </details>;
 }
 
-export function ScenePreview({definition: input, children, title = "Untitled scene", backHref, onBack, revision, hot}: ScenePreviewProps) {
+export function ScenePreview({definition: input, children, title = "Untitled scene", backHref, onBack, exportGuard, revision, hot}: ScenePreviewProps) {
   const session = usePreviewSession(input, revision);
   const connection = usePreviewConnection(hot, session.pause);
   const [renderError, setRenderError] = useState("");
@@ -148,7 +150,10 @@ export function ScenePreview({definition: input, children, title = "Untitled sce
             }}>{onBack ? "Back to scenes" : "Back to app"}</a> : onBack && <button className="flute-control" onClick={onBack}>Back to scenes</button>}
             <h1 className="flute-title">{title}</h1>
           </div>
-          <ExportMenu disabled={blocked || !session.durationMs} panelHost={exportPanel}/>
+          {exportGuard ? <div className="flute-export-guard">
+            {exportGuard}
+            <ExportMenu disabled panelHost={exportPanel}/>
+          </div> : <ExportMenu disabled={blocked || !session.durationMs} panelHost={exportPanel}/>}
         </div>
         {!definition && <GettingStarted/>}
         <div className="flute-dock">

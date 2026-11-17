@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Surface, type PreviewDefinitionInput } from "../../src";
-import { ScenePreview } from "../../src/preview";
+import { CameraPreview, ScenePreview } from "../../src/preview";
 import type { CaptureBridge } from "../../src/core/export";
 
 const definition: PreviewDefinitionInput = {
@@ -128,4 +128,41 @@ it("uses the library callback for ordinary back clicks and retains native link d
   fireEvent.click(within(controls()).getByRole("button", {name: "Back to scenes"}));
   expect(onBack).toHaveBeenCalledTimes(2);
   expect(within(controls()).getByText("Get started")).toBeTruthy();
+});
+
+it("resolves an unsaved camera edit before export and moves a saved key to an exact elapsed time", async () => {
+  vi.stubGlobal("ResizeObserver", class {
+    observe() {}
+    disconnect() {}
+  });
+  const initialUrl = location.href;
+  const storageKey = "test:camera-edit:camera-keyframes";
+  try {
+    render(<CameraPreview sceneId="camera-edit" storagePrefix="test" definition={definition}>
+      <Surface id="host">Host</Surface>
+    </CameraPreview>);
+    const camera = await screen.findByRole("button", {name: "Camera"});
+    fireEvent.click(camera);
+    fireEvent.keyDown(camera, {key: "ArrowRight"});
+    expect(screen.getByText("Unsaved camera edit")).toBeTruthy();
+    expect((screen.getByRole("button", {name: "Export"}) as HTMLButtonElement).disabled).toBe(true);
+    expect(new URL(location.href).searchParams.has("keys")).toBe(false);
+    fireEvent.click(screen.getByRole("button", {name: "Discard"}));
+    expect(screen.queryByText("Unsaved camera edit")).toBeNull();
+    fireEvent.keyDown(camera, {key: "ArrowRight"});
+    fireEvent.click(screen.getByRole("button", {name: "Save keyframe"}));
+    expect(screen.queryByText("Unsaved camera edit")).toBeNull();
+    expect(localStorage.getItem(storageKey)).toBe(new URL(location.href).searchParams.get("keys"));
+    const time = screen.getByLabelText("Keyframe time in seconds") as HTMLInputElement;
+    fireEvent.change(time, {target: {value: "9"}});
+    fireEvent.submit(time.form!);
+    expect(screen.getByText("Enter a time from 0 to 8.00 s")).toBeTruthy();
+    fireEvent.change(time, {target: {value: "1.234"}});
+    fireEvent.submit(time.form!);
+    expect(screen.getByRole("button", {name: "Keyframe at 1.23 s"})).toBeTruthy();
+    expect(new URL(location.href).searchParams.get("keys")).toMatch(/^617,/);
+  } finally {
+    history.replaceState(null, "", initialUrl);
+    localStorage.removeItem(storageKey);
+  }
 });

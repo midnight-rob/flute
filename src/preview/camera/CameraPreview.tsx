@@ -15,6 +15,7 @@ import {
   type CameraPose,
 } from "./keyframes";
 import { CameraHud, CameraNumber, hudRanges, type CameraHudControl } from "./CameraHud";
+import { useFrameBatch } from "./useFrameBatch";
 import controlsCss from "./camera-controls.css?inline";
 import hudCss from "./camera-hud.css?inline";
 
@@ -141,6 +142,7 @@ function createCameraScene(id: string, storagePrefix: string, original: ReturnTy
 }
 
 type CameraScene = ReturnType<typeof createCameraScene>;
+type DraftEdit = (previous: CameraKeyframe | null) => CameraKeyframe;
 
 type CameraControlsProps = {
   scene: CameraScene;
@@ -150,7 +152,8 @@ type CameraControlsProps = {
   travel: number;
   frames: CameraKeyframe[];
   draft: CameraKeyframe | null;
-  onDraft: (update: (previous: CameraKeyframe | null) => CameraKeyframe | null) => void;
+  onEdit: (edit: DraftEdit, continuous: boolean) => void;
+  onDiscard: () => void;
   onSave: (frame: CameraKeyframe) => void;
   onRemove: (timeMs: number) => void;
   onMove: (from: number, to: number) => void;
@@ -188,7 +191,7 @@ const panDirections: Record<string, { x: number; y: number }> = {
   ArrowDown: { x: 0, y: 1 },
 };
 
-function CameraTimelineKeyframe({ scene, timeMs, active, current, draft, canDuplicate, onMove, onDuplicate, onRemove }: {
+function CameraTimelineKeyframe({ scene, timeMs, active, current, draft, canDuplicate, onMove, onDuplicate, onRemove, onInvalidTime }: {
   scene: CameraScene;
   timeMs: number;
   active: boolean;
@@ -198,11 +201,13 @@ function CameraTimelineKeyframe({ scene, timeMs, active, current, draft, canDupl
   onMove: (timeMs: number) => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  onInvalidTime: () => void;
 }) {
   const drag = useRef<{ pointerId: number; startX: number; width: number; moved: boolean } | null>(null);
   const { motion, seekTo, frameTime } = scene;
   const ignoreClick = useRef(false);
   const [dragTime, setDragTime] = useState<number | null>(null);
+  const dragPreview = useFrameBatch<number>(setDragTime);
   const shownTime = dragTime ?? timeMs;
 
   function timeAt(clientX: number, startX: number, width: number) {
@@ -212,6 +217,7 @@ function CameraTimelineKeyframe({ scene, timeMs, active, current, draft, canDupl
 
   function clearDrag() {
     drag.current = null;
+    dragPreview.take();
     setDragTime(null);
   }
 
@@ -235,7 +241,7 @@ function CameraTimelineKeyframe({ scene, timeMs, active, current, draft, canDupl
         if (!active || !start || start.pointerId !== event.pointerId) return;
         if (!start.moved && Math.abs(event.clientX - start.startX) < 4) return;
         start.moved = true;
-        setDragTime(timeAt(event.clientX, start.startX, start.width));
+        dragPreview.schedule(timeAt(event.clientX, start.startX, start.width));
       }}
       onPointerUp={event => {
         const start = drag.current;
@@ -250,8 +256,27 @@ function CameraTimelineKeyframe({ scene, timeMs, active, current, draft, canDupl
         ignoreClick.current = false;
       }}/>
     {active && <div className="flute-camera-keyframe-popover">
-      <span>{frameTime(shownTime)}</span>
-      {dragTime === null && <>
+      {dragTime !== null ? <span>{frameTime(shownTime)}</span> : <>
+        <form className="flute-camera-keyframe-time" onSubmit={event => {
+          event.preventDefault();
+          const input = event.currentTarget.elements.namedItem("time");
+          if (!(input instanceof HTMLInputElement)) return;
+          const seconds = input.valueAsNumber;
+          const to = Math.round(seconds * 1000 * motion.speed);
+          if (!Number.isFinite(to) || seconds < 0 || to > motion.durationMs) {
+            onInvalidTime();
+            return;
+          }
+          onMove(to);
+        }} noValidate>
+          <label>
+            <input type="number" name="time" step="any" inputMode="decimal"
+              aria-label="Keyframe time in seconds"
+              defaultValue={Number((timeMs / motion.speed / 1000).toFixed(6))}
+              onFocus={event => event.currentTarget.select()}/> s
+          </label>
+          <button type="submit">Move</button>
+        </form>
         <button type="button" disabled={!canDuplicate} onClick={onDuplicate}>Duplicate</button>
         <button type="button" onClick={onRemove}>Delete</button>
       </>}
@@ -259,7 +284,7 @@ function CameraTimelineKeyframe({ scene, timeMs, active, current, draft, canDupl
   </div>;
 }
 
-function CameraControls({ scene, active, onActiveChange, definition, travel, frames, draft, onDraft, onSave, onRemove, onMove, onDuplicate, onTravel, onReset }: CameraControlsProps) {
+function CameraControls({ scene, active, onActiveChange, definition, travel, frames, draft, onEdit, onDiscard, onSave, onRemove, onMove, onDuplicate, onTravel, onReset }: CameraControlsProps) {
   const { motion, camera, minFocus, frameTime, seekTo, poseFromSettings, settingsFromPose, moveSetting } = scene;
   const sceneTime = Math.round(useSceneTime());
   const anchor = useRef<HTMLSpanElement>(null);
@@ -267,9 +292,9 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
   const [hosts, setHosts] = useState<{ viewport: HTMLElement; dock: HTMLElement } | null>(null);
   const [notice, setNotice] = useState("");
   const [lockedControl, setLockedControl] = useState<CameraHudControl | null>(null);
-  const savedPose = poseAt(definition, draft?.timeMs ?? sceneTime);
-  const pose = draft?.pose ?? savedPose;
   const saveTime = draft?.timeMs ?? sceneTime;
+  const savedPose = useMemo(() => active ? poseAt(definition, saveTime) : null, [active, definition, saveTime]);
+  const pose = draft?.pose ?? savedPose;
   const existing = frames.some(frame => frame.timeMs === saveTime);
   const canSave = existing || frames.length < keyframeLimit;
   const status = draft ? `Draft at ${frameTime(saveTime)}`
@@ -286,49 +311,49 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
     return () => dock.classList.remove("flute-camera-dock");
   }, []);
 
-  function editPose(update: (previous: CameraPose) => CameraPose) {
+  function editPose(update: (previous: CameraPose) => CameraPose, continuous = false) {
+    if (!pose) return;
     setNotice("");
-    seekTo(saveTime);
-    onDraft(previous => {
-      const timeMs = previous?.timeMs ?? sceneTime;
-      const current = previous?.pose ?? poseAt(definition, timeMs);
-      return { timeMs, pose: update(current) };
-    });
+    onEdit(previous => ({
+      timeMs: previous?.timeMs ?? saveTime,
+      pose: update(previous?.pose ?? pose),
+    }), continuous);
   }
 
-  function moveCamera(deltas: Partial<Settings>) {
+  function moveCamera(deltas: Partial<Settings>, continuous = false) {
     editPose(current => {
       const settings = settingsFromPose(current);
       for (const key of Object.keys(deltas) as Setting[]) {
         settings[key] = moveSetting(key, settings[key], deltas[key] ?? 0);
       }
       return poseFromSettings(settings);
-    });
+    }, continuous);
   }
 
-  function changeHud(control: keyof typeof hudRanges, value: number) {
+  function changeHud(control: keyof typeof hudRanges, value: number, continuous: boolean) {
     editPose(current => {
       if (control === "roll") return { ...current, rotateZ: value };
       if (control === "aperture") return { ...current, fStop: value };
       return poseFromSettings({ ...settingsFromPose(current), zoom: value });
-    });
+    }, continuous);
   }
 
   function save() {
-    if (!canSave) return;
+    if (!pose || !canSave) return;
     setNotice("");
-    seekTo(saveTime);
     onSave({ timeMs: saveTime, pose });
   }
 
   function discard() {
     setNotice("");
-    seekTo(saveTime);
-    onDraft(() => null);
+    onDiscard();
   }
 
   function moveKeyframe(from: number, to: number) {
-    if (from === to) return;
+    if (from === to) {
+      setNotice("");
+      return;
+    }
     if (frames.some(frame => frame.timeMs === to) || draft?.timeMs === to) {
       setNotice(`A keyframe already uses ${frameTime(to)}`);
       return;
@@ -362,7 +387,8 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
     event.preventDefault();
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 200 : 1;
     if (event.target instanceof HTMLElement) event.target.focus({ preventScroll: true });
-    moveCamera({ zoom: bounded(-event.deltaY * unit * 0.65, -100, 100) });
+    const zoom = bounded(-event.deltaY * unit * 0.65, -100, 100);
+    moveCamera({ zoom: event.shiftKey ? zoom * 0.2 : zoom }, true);
   }
 
   function handleKey(event: KeyboardEvent) {
@@ -413,7 +439,7 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
 
   return <>
     <span ref={anchor} hidden />
-    {hosts && active && createPortal(
+    {hosts && active && pose && savedPose && createPortal(
       <>
         <div className="flute-camera-surface" role="region" aria-label="Camera preview"
           aria-describedby="flute-camera-gestures" tabIndex={0} data-flute-preview-chrome
@@ -423,7 +449,7 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
           onPointerMove={event => {
             const delta = dragDelta(event, drag);
             if (delta && (delta.x || delta.y)) {
-              moveCamera({ yaw: -delta.x * 0.22, pitch: delta.y * 0.22 });
+              moveCamera({ yaw: -delta.x * 0.22, pitch: delta.y * 0.22 }, true);
             }
           }}
           onLostPointerCapture={() => { drag.current = null; }}
@@ -433,7 +459,7 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
         <CameraHud values={{ zoom: camera.z - pose.z, aperture: pose.fStop, roll: pose.rotateZ }}
           focus={{ distance: pose.distance, min: minFocus, max: Math.max(4000, Math.ceil(savedPose.distance)) }}
           lockedControl={lockedControl} onLockChange={setLockedControl}
-          onFocusChange={distance => editPose(current => ({ ...current, distance }))}
+          onFocusChange={(distance, continuous) => editPose(current => ({ ...current, distance }), continuous)}
           onChange={changeHud}>
           {frames.length === 0 && !draft && <>
             <CameraNumber label="Travel amount" value={travel} unit="%" onCommit={onTravel}/>
@@ -451,6 +477,7 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
               current={timeMs === sceneTime} draft={active && draft?.timeMs === timeMs}
               canDuplicate={frames.length < keyframeLimit}
               onMove={to => moveKeyframe(timeMs, to)} onDuplicate={() => duplicateKeyframe(timeMs)}
+              onInvalidTime={() => setNotice(`Enter a time from 0 to ${frameTime(motion.durationMs)}`)}
               onRemove={() => {
                 setNotice("");
                 onRemove(timeMs);
@@ -495,6 +522,7 @@ function CameraControls({ scene, active, onActiveChange, definition, travel, fra
               <span title="Hold Shift to pan faster"><kbd>↑↓←→</kbd> Pan</span>
               <span title="Shift + drag also works on a trackpad"><kbd>Middle drag</kbd> Orbit</span>
               <span><kbd>Scroll</kbd> Zoom</span>
+              {active && <span title="Hold Shift while dragging zoom, focus, or roll"><kbd>Shift</kbd> Fine HUD adjustment</span>}
               <span><kbd>K</kbd> Save</span>
             </span>
           </div>
@@ -529,6 +557,7 @@ function CameraScenePreview({ scene, children, ...props }: Omit<ScenePreviewProp
     decodeCameraKeyframes(query.get("keys"), motion.durationMs, minFocus),
   );
   const [draft, setDraft] = useState<CameraKeyframe | null>(null);
+  const latestDraft = useRef<CameraKeyframe | null>(null);
   const [active, setActive] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const base = useMemo(() => previewDefinition(settings), [previewDefinition, settings]);
@@ -536,6 +565,39 @@ function CameraScenePreview({ scene, children, ...props }: Omit<ScenePreviewProp
   const definition = useMemo(() => active && draft
     ? withCameraKeyframes(base, setCameraKeyframe(frames, draft))
     : saved, [active, base, frames, draft, saved]);
+
+  function replaceDraft(next: CameraKeyframe | null) {
+    latestDraft.current = next;
+    setDraft(next);
+  }
+
+  function applyEdit(edit: DraftEdit) {
+    const next = edit(latestDraft.current);
+    scene.seekTo(next.timeMs);
+    replaceDraft(next);
+  }
+
+  const edits = useFrameBatch(applyEdit, (first, next) => previous => next(first(previous)));
+
+  function saveFrame(frame: CameraKeyframe) {
+    const pending = edits.take();
+    const current = latestDraft.current;
+    const next = pending ? pending(current) : current ?? frame;
+    if (frames.length >= keyframeLimit && !frames.some(savedFrame => savedFrame.timeMs === next.timeMs)) {
+      if (pending) applyEdit(pending);
+      return;
+    }
+    scene.seekTo(next.timeMs);
+    setFrames(previous => setCameraKeyframe(previous, next));
+    replaceDraft(null);
+  }
+
+  function discardDraft() {
+    edits.take();
+    const timeMs = latestDraft.current?.timeMs;
+    if (timeMs !== undefined) scene.seekTo(timeMs);
+    replaceDraft(null);
+  }
   useEffect(() => {
     let active = true;
     queueMicrotask(() => {
@@ -571,28 +633,47 @@ function CameraScenePreview({ scene, children, ...props }: Omit<ScenePreviewProp
 
   if (!loaded) return null;
 
-  return <ScenePreview {...props} definition={definition}>
+  const draftAtLimit = draft && frames.length >= keyframeLimit && !frames.some(frame => frame.timeMs === draft.timeMs);
+  const exportGuard = draft ? <div className="flute-camera-export-draft">
+    <span role="status">Unsaved camera edit</span>
+    <div>
+      <button type="button" disabled={!!draftAtLimit} onClick={() => saveFrame(draft)}>Save keyframe</button>
+      <button type="button" onClick={discardDraft}>Discard</button>
+    </div>
+  </div> : props.exportGuard;
+
+  return <ScenePreview {...props} definition={definition} exportGuard={exportGuard}>
     <style>{controlsCss + "\n" + hudCss}</style>
     {children}
-    <CameraControls scene={scene} active={active} onActiveChange={setActive} definition={saved}
+    <CameraControls scene={scene} active={active} onActiveChange={enabled => {
+      if (!enabled) edits.flush();
+      setActive(enabled);
+    }} definition={saved}
       travel={settings.travel} frames={frames} draft={draft}
       onTravel={travel => setSettings(previous => ({ ...previous, travel: bounded(travel, 0, 125) }))}
-      onDraft={setDraft}
-      onSave={frame => {
-        setFrames(previous => setCameraKeyframe(previous, frame));
-        setDraft(null);
+      onEdit={(edit, continuous) => {
+        if (continuous) edits.schedule(edit);
+        else {
+          edits.flush();
+          applyEdit(edit);
+        }
       }}
+      onDiscard={discardDraft}
+      onSave={saveFrame}
       onRemove={timeMs => {
+        edits.flush();
         setFrames(previous => previous.filter(frame => frame.timeMs !== timeMs));
-        setDraft(previous => previous?.timeMs === timeMs ? null : previous);
+        if (latestDraft.current?.timeMs === timeMs) replaceDraft(null);
       }}
       onMove={(from, to) => {
+        edits.flush();
         setFrames(previous => {
           const source = previous.find(frame => frame.timeMs === from);
           if (!source || previous.some(frame => frame.timeMs === to)) return previous;
           return setCameraKeyframe(previous.filter(frame => frame !== source), { ...source, timeMs: to });
         });
-        setDraft(previous => previous?.timeMs === from ? { ...previous, timeMs: to } : previous);
+        const current = latestDraft.current;
+        if (current?.timeMs === from) replaceDraft({ ...current, timeMs: to });
       }}
       onDuplicate={(from, to) => {
         setFrames(previous => {

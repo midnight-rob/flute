@@ -76,6 +76,7 @@
 .flute-camera-controls button,
 .flute-hud-more button,
 .flute-camera-actions button,
+.flute-camera-export-draft button,
 .flute-camera-keyframe-popover button {
   padding: 5px 10px;
   border: 1px solid #ffffff30;
@@ -88,6 +89,7 @@
 .flute-camera-controls button:enabled:hover,
 .flute-hud-more button:hover,
 .flute-camera-actions button:hover,
+.flute-camera-export-draft button:enabled:hover,
 .flute-camera-keyframe-popover button:enabled:hover { filter: brightness(1.2); }
 .flute-camera-controls button:disabled { opacity: .6; cursor: default; }
 .flute-camera-controls button[aria-expanded="true"] {
@@ -95,6 +97,7 @@
   background: #3a3a55;
 }
 .flute-camera-controls :focus-visible,
+.flute-camera-export-draft :focus-visible,
 .flute-camera-dock :is(button, [role="slider"]):focus-visible {
   outline: 2px solid #b5b6ff;
   outline-offset: 2px;
@@ -222,6 +225,46 @@
 .flute-camera-keyframe[data-dragging] .flute-camera-keyframe-popover { pointer-events: none; }
 .flute-camera-keyframe-popover button { padding: 4px 7px; }
 .flute-camera-keyframe-popover button:disabled { opacity: .55; cursor: default; }
+@media (max-width: 600px) {
+  .flute-camera-keyframe-popover {
+    width: max-content;
+    max-width: 150px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+.flute-camera-keyframe-time,
+.flute-camera-export-draft > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.flute-camera-keyframe-time input {
+  box-sizing: border-box;
+  width: 66px;
+  padding: 3px 4px;
+  border: 1px solid #ffffff30;
+  border-radius: 6px;
+  background: #15151a;
+  color: inherit;
+  font: inherit;
+  text-align: right;
+}
+.flute-camera-keyframe-time input:focus-visible {
+  outline: 2px solid #b5b6ff;
+  outline-offset: 2px;
+}
+.flute-camera-export-draft {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  color: #ffe1a8;
+  font: 500 12px/1.4 system-ui, sans-serif;
+}
+.flute-camera-export-draft > div { flex-wrap: wrap; justify-content: end; }
+.flute-camera-export-draft button { color: #fff; }
+.flute-camera-export-draft button:disabled { opacity: .55; cursor: default; }
 
 .flute-camera-actions {
   grid-column: 1 / -1;
